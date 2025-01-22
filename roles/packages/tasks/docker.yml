@@ -1,0 +1,83 @@
+---
+- name: Add Docker GPG apt Key
+  vars:
+    docker_key_url: "https://download.docker.com/linux/debian/gpg"
+    docker_key_path: "/etc/apt/keyrings/docker.gpg"
+    docker_repo_url: "https://download.docker.com/linux/debian"
+  block:
+    - name: Check if Docker GPG key is already imported
+      ansible.builtin.stat:
+        path: "{{ docker_key_path }}"
+      register: gpg_key
+
+    - name: Download Docker GPG key
+      ansible.builtin.get_url:
+        url: "{{ docker_key_url }}"
+        dest: /tmp/docker.gpg
+        mode: "0644"
+      when: not gpg_key.stat.exists
+
+    - name: Import Docker GPG key
+      ansible.builtin.command:
+        cmd: gpg --dearmor -o {{ docker_key_path }} /tmp/docker.gpg
+        creates: "{{ docker_key_path }}"
+      when: not gpg_key.stat.exists
+
+    - name: Set permissions for Docker GPG key
+      ansible.builtin.file:
+        path: "{{ docker_key_path }}"
+        mode: "0644"
+        state: file
+      when: not gpg_key.stat.exists
+
+    - name: Add Docker repository
+      ansible.builtin.apt_repository:
+        repo: "deb [arch=amd64 signed-by={{ docker_key_path }}] {{ docker_repo_url }} {{ ansible_distribution_release }} stable"
+        filename: docker
+        state: present
+
+- name: Install the latest version of Docker engine
+  block:
+    - name: Install docker package
+      ansible.builtin.package:
+        name:
+          - docker-ce
+          - docker-ce-cli
+          - containerd.io
+          - docker-buildx-plugin
+          - docker-compose-plugin
+        state: present
+
+    - name: Create docker group
+      ansible.builtin.group:
+        name: docker
+        state: present
+
+    - name: Add VPS user to docker group
+      ansible.builtin.user:
+        name: "{{ username }}"
+        groups:
+          - docker
+        append: true
+        state: present
+
+    # https://www.jeffgeerling.com/blog/2021/allowing-ansible-playbooks-work-new-user-groups-on-first-run
+    - name: Reset connection so docker group is picked up
+      ansible.builtin.meta: reset_connection
+
+    - name: Enable docker service
+      ansible.builtin.service:
+        name: docker.service
+        enabled: true
+
+    - name: Enable containerd service
+      ansible.builtin.service:
+        name: containerd.service
+        enabled: true
+
+    - name: Copy daemon.json
+      ansible.builtin.copy:
+        dest: "/etc/docker/daemon.json"
+        src: "daemon.json"
+        mode: "0644"
+      notify: Restart Docker

@@ -1,0 +1,49 @@
+---
+- name: Set some initial facts
+  ansible.builtin.set_fact:
+    caddy_path: "/opt/docker/caddy"
+
+- name: Create Caddy directory
+  ansible.builtin.file:
+    path: "{{ caddy_path }}"
+    state: directory
+    mode: "0755"
+  become: true
+
+- name: Set permissions for Caddy directory
+  ansible.builtin.file:
+    path: "{{ caddy_path }}"
+    owner: "{{ username }}"
+    group: docker
+    mode: "0755"
+  become: true
+
+- name: Create Caddyfile
+  ansible.builtin.template:
+    src: "{{ caddy['caddy_file_path'] }}"
+    dest: "{{ caddy_path }}/Caddyfile.j2"
+    mode: "0644"
+
+- name: Create Caddy data volume
+  community.docker.docker_volume:
+    name: "{{ caddy['data_volume'] }}"
+
+- name: Create Caddy config volume
+  community.docker.docker_volume:
+    name: "{{ caddy['config_volume'] }}"
+
+- name: Create Caddy container
+  community.docker.docker_container:
+    name: "{{ caddy['container_name'] }}"
+    image: "{{ caddy['container_image'] }}"
+    state: started
+    restart_policy: unless-stopped
+    ports:
+      - "80:80" # HTTP
+      - "443:443" # HTTPS
+      - "443:443/udp" # HTTP/3
+    volumes:
+      - "{{ caddy_path }}/Caddyfile.j2:/etc/caddy/Caddyfile"
+      - "{{ caddy['data_volume'] }}:/data"
+      - "{{ caddy['config_volume'] }}:/config"
+    networks: "{{ caddy['networks'] }}"

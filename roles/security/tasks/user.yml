@@ -1,0 +1,28 @@
+---
+- name: Create user
+  ansible.builtin.user:
+    name: "{{ username }}"
+    shell: /bin/bash
+    create_home: true
+
+- name: Set user password
+  ansible.builtin.user:
+    name: "{{ username }}"
+    password: "{{ password | password_hash('sha512') }}"
+
+- name: Add user to sudo
+  ansible.builtin.user:
+    name: "{{ username }}"
+    groups: sudo
+    append: true
+
+- name: Add a SSH key to new user
+  ansible.posix.authorized_key:
+    user: "{{ username }}"
+    state: present
+    key: "{{ lookup('file', ssh_public_key_path) }}"
+
+- name: Update Ansible to use new user
+  ansible.builtin.set_fact:
+    ansible_user: "{{ username }}"
+    ansible_become_pass: "{{ password }}"

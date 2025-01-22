@@ -1,0 +1,19 @@
+---
+- name: Install VPS packages
+  hosts: vps
+  vars_files:
+    - secrets.yml
+  vars:
+    ansible_user: "{{ username }}"
+    ansible_become_pass: "{{ password }}"
+  tasks:
+    - name: Run packages tasks
+      ansible.builtin.import_role:
+        name: packages
+        tasks_from: apt.yml
+      become: true
+    - name: Install Docker
+      ansible.builtin.import_role:
+        name: packages
+        tasks_from: docker.yml
+      become: true

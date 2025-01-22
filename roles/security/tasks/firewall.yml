@@ -1,0 +1,43 @@
+---
+- name: Ensure UFW is installed
+  ansible.builtin.apt:
+    name: ufw
+    state: present
+
+- name: Deny incoming connections
+  community.general.ufw:
+    direction: incoming
+    policy: deny
+
+- name: Allow outgoing connections
+  community.general.ufw:
+    direction: outgoing
+    policy: allow
+
+- name: Allow SSH connections
+  community.general.ufw:
+    rule: allow
+    port: "{{ ssh_port }}"
+    proto: tcp
+
+- name: Allow webhook connections
+  community.general.ufw:
+    rule: allow
+    port: "{{ webhook_port }}"
+    proto: tcp
+
+- name: Allow Http connections
+  community.general.ufw:
+    rule: allow
+    port: "80"
+    proto: tcp
+
+- name: Allow Https connections
+  community.general.ufw:
+    rule: allow
+    port: "443"
+    proto: tcp
+
+- name: Deny everything and enable UFW
+  community.general.ufw:
+    state: enabled

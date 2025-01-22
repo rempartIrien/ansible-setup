@@ -1,0 +1,29 @@
+---
+- name: Configure VPS services
+  hosts: vps
+  vars_files:
+    - secrets.yml
+  vars:
+    ansible_user: "{{ username }}"
+    ansible_become_pass: "{{ password }}"
+  tasks:
+    - name: Set Docker networks
+      ansible.builtin.import_role:
+        name: services
+        tasks_from: networks.yml
+    - name: Install Caddy
+      ansible.builtin.import_role:
+        name: services
+        tasks_from: caddy.yml
+    - name: Instal PostgreSQL
+      ansible.builtin.import_role:
+        name: services
+        tasks_from: postgresql.yml
+    - name: Instal pgAdmin
+      ansible.builtin.import_role:
+        name: services
+        tasks_from: pgadmin.yml
+    - name: Install yacht
+      ansible.builtin.import_role:
+        name: services
+        tasks_from: yacht.yml

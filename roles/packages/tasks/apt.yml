@@ -1,0 +1,22 @@
+---
+- name: Run "apt-get update"
+  ansible.builtin.apt:
+    update_cache: true
+
+- name: Install required packages
+  ansible.builtin.apt:
+    pkg:
+      - debian-keyring # Debian keyring
+      - debian-archive-keyring # Debian archive keyring
+      - build-essential # Development tools
+      - bash-completion # Bash completion
+      - apt-transport-https # HTTPS support for APT
+      - ca-certificates # CA certificates
+      - python3-full # Latest Python 3
+      - python3-pip # Python package installer
+      - python3-psycopg2 # PostgreSQL adapter for Python
+      - curl # Transfer data with URLs
+      - procps # Process utilities
+      - file # File type identification
+      - git # Version control system
+      - vim # Text editor

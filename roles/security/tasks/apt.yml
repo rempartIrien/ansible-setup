@@ -1,0 +1,23 @@
+---
+- name: Set timezone to UTC
+  community.general.timezone:
+    name: UTC
+
+- name: Run "apt-get update"
+  ansible.builtin.apt:
+    update_cache: true
+
+- name: Update all packages to their latest version
+  ansible.builtin.apt:
+    upgrade: dist
+    autoremove: true
+
+- name: Install required packages
+  ansible.builtin.apt:
+    pkg:
+      - debian-keyring # Debian keyring
+      - debian-archive-keyring # Debian archive keyring
+      - ca-certificates # CA certificates
+      - gnupg # GnuPG
+      - fail2ban # Intrusion prevention software
+      - ufw # Uncomplicated Firewall

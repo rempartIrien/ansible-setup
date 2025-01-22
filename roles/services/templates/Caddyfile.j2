@@ -1,0 +1,15 @@
+http {
+  redir https://{host}{uri} 301
+}
+
+{% for application in applications %}
+  {% for network in application.networks %}
+    {% if network.name == 'caddy_net' %}
+      {{ application.domain }} {
+          reverse_proxy {{ application.container_hostname }}:{{ application.container_port }} {
+              header_up X-Scheme {scheme}
+          }
+      }
+    {% endif %}
+  {% endfor %}
+{% endfor %}

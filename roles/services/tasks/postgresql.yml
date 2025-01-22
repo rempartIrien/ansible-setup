@@ -1,0 +1,38 @@
+---
+- name: Set variable for postgres container
+  ansible.builtin.set_fact:
+    postgres: "{{ applications | selectattr('container_name', 'equalto', 'easy-gundam-api-db') | first }}"
+
+- name: Create postgres volume
+  community.docker.docker_volume:
+    name: "{{ postgres['data_volume'] }}"
+
+- name: Create postgres container
+  community.docker.docker_container:
+    name: "{{ postgres['container_name'] }}"
+    image: "{{ postgres['container_image'] }}"
+    hostname: "{{ postgres['container_hostname'] }}"
+    restart_policy: unless-stopped
+    image_name_mismatch: recreate
+    recreate: true
+    env:
+      POSTGRES_USER: "{{ postgres_db_user }}"
+      POSTGRES_PASSWORD: "{{ postgres_db_pass }}"
+    networks: "{{ postgres['networks'] }}"
+    volumes:
+      - "{{ postgres['data_volume'] }}:/var/lib/postgresql/data"
+    healthcheck:
+      test: ["CMD", "pg_isready", "-U", "{{ postgres_db_user }}"]
+      interval: 1m30s
+      timeout: 10s
+      retries: 3
+      start_period: 30s
+
+- name: Wait for PostgreSQL to become available
+  community.docker.docker_container_exec:
+    container: "{{ postgres['container_name'] }}"
+    command: bash -c "until pg_isready -U {{ postgres_db_user }}; do sleep 1; done"
+  register: result
+  until: result is succeeded
+  retries: 30
+  delay: 1

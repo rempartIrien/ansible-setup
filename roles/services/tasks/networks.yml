@@ -1,0 +1,6 @@
+---
+- name: Create Docker networks
+  community.docker.docker_network:
+    name: "{{ item.name }}"
+    driver: "{{ item.driver }}"
+  loop: "{{ docker_networks }}"

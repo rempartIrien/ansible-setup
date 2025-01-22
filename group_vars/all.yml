@@ -1,0 +1,70 @@
+---
+docker_networks:
+  - name: caddy_net
+    driver: bridge
+  - name: private_easy_gundam
+    driver: bridge
+
+# Caddy Container Configuration
+caddy:
+  container_name: caddy
+  container_image: caddy:latest
+  caddy_file_path: roles/services/templates/Caddyfile.j2
+  data_volume: caddy_data
+  config_volume: caddy_config
+  networks:
+    - name: caddy_net
+
+applications:
+  # Yacht Container Configuration
+  - container_name: yacht
+    container_hostname: yacht
+    container_image: selfhostedpro/yacht:latest
+    container_port: 8000
+    data_volume: yacht_data
+    networks:
+      - name: caddy_net
+    domain: "{{ yacht_domain }}"
+  # PgAdmin Container Configuration
+  - container_name: pgadmin
+    container_hostname: pgadmin
+    container_image: dpage/pgadmin4:latest
+    container_port: 80
+    data_volume: pgadmin_data
+    networks:
+      - name: caddy_net
+    domain: "{{ pgadmin_domain }}"
+  # # Resume Container Configuration
+  # - container_name: resume
+  #   container_hostname: resume
+  #   container_port: 8080
+  #   data_volume: resume_data
+  #   networks:
+  #     - name: caddy_net
+  #   domain: "{{ resume_domain }}"
+  # # Easy Gundam Container Configuration
+  # - container_name: easy-gundam
+  #   container_hostname: easy-gundam
+  #   container_port: 8080
+  #   data_volume: easy-gundam_data
+  #   networks:
+  #     - name: caddy_net
+  #   domain: "{{ easy_gundam_domain }}"
+  # # Easy Gundam API Container Configuration
+  # - container_name: easy-gundam-api
+  #   container_hostname: easy-gundam-api
+  #   container_image: directus/directus:latest
+  #   container_port: 8055
+  #   data_volume: easy-gundam-api_data
+  #   networks:
+  #     - name: caddy_net
+  #     - name: private_easy_gundam
+  #   domain: "{{ easy_gundam_api_domain }}"
+  # Easy Gundam DB Container Configuration
+  - container_name: easy-gundam-api-db
+    container_hostname: easy-gundam-api-db
+    container_image: postgres:latest
+    container_port: 5432
+    data_volume: easy-gundam-api-db_data
+    networks:
+      - name: private_easy_gundam

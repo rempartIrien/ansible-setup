@@ -1,0 +1,36 @@
+---
+- name: Harden VPS security
+  hosts: vps
+  vars_files:
+    - secrets.yml
+  tasks:
+    - name: Install packages
+      ansible.builtin.import_role:
+        name: security
+        tasks_from: apt.yml
+      become: true
+    - name: Init system
+      ansible.builtin.import_role:
+        name: security
+        tasks_from: system.yml
+      become: true
+    - name: Add new user
+      ansible.builtin.import_role:
+        name: security
+        tasks_from: user.yml
+      become: true
+    - name: Configure SSH
+      ansible.builtin.import_role:
+        name: security
+        tasks_from: ssh.yml
+      become: true
+    - name: Install ufw
+      ansible.builtin.import_role:
+        name: security
+        tasks_from: firewall.yml
+      become: true
+    - name: Install fail2ban
+      ansible.builtin.import_role:
+        name: security
+        tasks_from: fail2ban.yml
+      become: true

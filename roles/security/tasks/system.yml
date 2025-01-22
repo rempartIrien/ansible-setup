@@ -1,0 +1,7 @@
+---
+# Set GRUB timeout to 0 seconds for near-instant booting
+- name: Set GRUB timeout
+  ansible.builtin.lineinfile:
+    path: /etc/default/grub
+    regexp: "^GRUB_TIMEOUT="
+    line: "GRUB_TIMEOUT=0"

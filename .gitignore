@@ -1,0 +1,30 @@
+
+dist
+.output
+.vercel
+.netlify
+netlify
+.env
+.vscode
+
+# dependencies
+/node_modules
+
+# IDEs and editors
+/.idea
+.project
+.classpath
+*.launch
+.settings/
+
+# Temp
+gitignore
+
+# System Files
+.DS_Store
+Thumbs.db
+
+# Ansible
+vars.yml
+inventory.yml
+ansible_secrets_pass.txt
