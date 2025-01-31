@@ -6,9 +6,13 @@ http {
   {% for network in application.networks %}
     {% if network.name == 'caddy_net' %}
       {{ application.domain }} {
+				  {{ application.caddy_file_rule | default('') }}
           reverse_proxy {{ application.container_hostname }}:{{ application.container_port }} {
               header_up X-Scheme {scheme}
+							header_down -Server
           }
+
+					header -Server
       }
     {% endif %}
   {% endfor %}

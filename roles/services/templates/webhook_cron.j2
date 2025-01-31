@@ -1,0 +1,13 @@
+#!/bin/bash
+
+while true; do
+    # Read params from named pipe
+    params=$(cat {{ webhook.host_named_pipe }})
+
+    # Check if some params have been read
+    if [ -n "$params" ]; then
+        # Run script with given params
+        {{ redeploy_script }} $params
+    fi
+
+done

@@ -1,0 +1,18 @@
+FROM alpine:latest
+
+RUN apk add --no-cache webhook
+RUN mkdir -p /etc/webhook
+
+RUN addgroup -g 1001 -S webhookgroup && \
+    adduser -u 1001 -S -G webhookgroup -h /home/webhookuser webhookuser
+
+RUN chown -R webhookuser:webhookgroup /etc/webhook
+
+COPY send_to_pipe.sh /home/webhookuser/send_to_pipe.sh
+
+EXPOSE 9000
+
+USER webhookuser
+
+CMD ["webhook", "-hooks", "/etc/webhook/hooks.yml", "-verbose"]
+

@@ -27,3 +27,11 @@
       ansible.builtin.import_role:
         name: services
         tasks_from: yacht.yml
+    - name: Install webhook
+      ansible.builtin.import_role:
+        name: services
+        tasks_from: webhook.yml
+    - name: Install resume
+      ansible.builtin.import_role:
+        name: services
+        tasks_from: resume.yml

@@ -1,0 +1,23 @@
+{% for hook in webhook_hooks %}
+- id: "{{ hook.id }}"
+  execute-command: "/home/webhookuser/send_to_pipe.sh"
+  pass-arguments-to-command:
+{% for str in hook.command_params.split(" ") %}
+    - source: string
+      name: "{{ str }}"
+{% endfor %}
+  trigger-rule:
+    and:
+      - match:
+          type: payload-hmac-sha1
+          secret: "{{ hook.secret }}"
+          parameter:
+            source: header
+            name: X-Hub-Signature
+      - match:
+          type: value
+          value: refs/heads/main
+          parameter:
+            source: payload
+            name: ref
+{% endfor %}

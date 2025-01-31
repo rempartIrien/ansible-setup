@@ -9,13 +9,34 @@ docker_networks:
 caddy:
   container_name: caddy
   container_image: caddy:latest
-  caddy_file_path: roles/services/templates/Caddyfile.j2
+  caddy_file_path: "{{ playbook_dir }}/roles/services/templates/Caddyfile.j2"
   data_volume: caddy_data
   config_volume: caddy_config
   networks:
     - name: caddy_net
 
+projects_home: "/home/{{ username }}/projects"
+redeploy_script: "{{ projects_home }}/redeploy.sh"
+redeploy_script_path: "{{ playbook_dir }}/roles/services/files/redeploy.sh"
+redeploy_cron_script: "{{ projects_home }}/webhook_cron.sh"
+
 applications:
+  # Webhook Container Configuration
+  - container_name: webhook
+    container_hostname: webhook
+    container_port: 9000
+    dockerfile_path: "{{ playbook_dir }}/roles/services/files"
+    dockerfile_name: Dockerfile_webhook
+    data_volume: webhook_data
+    networks:
+      - name: caddy_net
+    domain: "{{ webhook_domain }}"
+    caddy_file_rule: "rewrite * /hooks{uri}"
+    webhook_file_path: "{{ playbook_dir }}/roles/services/templates/hooks.j2"
+    redeploy_cron_script_path: "{{ playbook_dir }}/roles/services/templates/webhook_cron.j2"
+    host_named_pipe: "/home/{{ username }}/webhook_pipe"
+    output_pipe: /output_pipe
+    send_to_pipe_path: "{{ playbook_dir }}/roles/services/templates/send_to_pipe.j2"
   # Yacht Container Configuration
   - container_name: yacht
     container_hostname: yacht
@@ -34,14 +55,14 @@ applications:
     networks:
       - name: caddy_net
     domain: "{{ pgadmin_domain }}"
-  # # Resume Container Configuration
-  # - container_name: resume
-  #   container_hostname: resume
-  #   container_port: 8080
-  #   data_volume: resume_data
-  #   networks:
-  #     - name: caddy_net
-  #   domain: "{{ resume_domain }}"
+  # Resume Container Configuration
+  - container_name: resume
+    container_hostname: resume
+    container_port: 8080
+    data_volume: resume_data
+    networks:
+      - name: caddy_net
+    domain: "{{ resume_domain }}"
   # # Easy Gundam Container Configuration
   # - container_name: easy-gundam
   #   container_hostname: easy-gundam

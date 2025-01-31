@@ -1,0 +1,111 @@
+---
+- name: Set webhook path
+  ansible.builtin.set_fact:
+    webhook_path: "/opt/docker/webhook"
+
+- name: Set hook file path
+  ansible.builtin.set_fact:
+    webhook_hook_file: "{{ webhook_path }}/hooks.yml"
+
+- name: Set variable for webhook container
+  ansible.builtin.set_fact:
+    webhook: "{{ applications | selectattr('container_name', 'equalto', 'webhook') | first }}"
+
+- name: Create Webhook directory
+  ansible.builtin.file:
+    path: "{{ webhook_path }}"
+    state: directory
+    mode: "0755"
+  become: true
+
+- name: Set permissions for Webhook directory
+  ansible.builtin.file:
+    path: "{{ webhook_path }}"
+    owner: "{{ username }}"
+    group: docker
+    mode: "0755"
+  become: true
+
+- name: Create hook file
+  ansible.builtin.template:
+    src: "{{ webhook['webhook_file_path'] }}"
+    dest: "{{ webhook_hook_file }}"
+    mode: "0644"
+
+# https://stackoverflow.com/questions/32163955/how-to-run-shell-script-on-host-from-docker-container/49873529#49873529
+- name: Create webhook named pipe
+  ansible.builtin.command:
+    cmd: "mkfifo {{ webhook['host_named_pipe'] }}"
+    creates: "{{ webhook['host_named_pipe'] }}"
+
+- name: Change webhook named pipe permissions
+  ansible.builtin.file:
+    path: "{{ webhook['host_named_pipe'] }}"
+    mode: "0644"
+
+- name: Create redeploy cron script
+  ansible.builtin.template:
+    src: "{{ webhook['redeploy_cron_script_path'] }}"
+    dest: "{{ redeploy_cron_script }}"
+    group: docker
+    mode: "0755"
+
+- name: Add cron to react to named pipe after reboot
+  ansible.builtin.cron:
+    name: "Listen to named pipe to redeploy containers with received params"
+    special_time: reboot
+    job: "{{ redeploy_cron_script }}"
+
+- name: Reboot the system to run script in cron job
+  ansible.builtin.reboot:
+    msg: "Rebooting after adding cron job"
+    pre_reboot_delay: 0
+    post_reboot_delay: 30
+
+- name: Create projects home folder
+  ansible.builtin.file:
+    path: "{{ projects_home }}"
+    state: directory
+    mode: "0755"
+
+- name: Create redeploy script
+  ansible.builtin.copy:
+    src: "{{ redeploy_script_path }}"
+    dest: "{{ redeploy_script }}"
+    group: docker
+    mode: "0755"
+
+- name: Copy script to send to pipe for Dockerfile
+  ansible.builtin.template:
+    src: "{{ webhook['send_to_pipe_path'] }}"
+    dest: "{{ webhook_path }}/send_to_pipe.sh"
+    group: docker
+    mode: "0755"
+
+- name: Copy webhook container Dockerfile
+  ansible.builtin.copy:
+    src: "{{ webhook['dockerfile_path'] }}/{{ webhook['dockerfile_name'] }}"
+    dest: "{{ webhook_path }}/Dockerfile"
+    group: docker
+    mode: "0644"
+
+- name: Create Webhook container image
+  community.docker.docker_image:
+    build:
+      path: "{{ webhook_path }}"
+    name: webhook
+    tag: v1
+    source: build
+  register: webhook_image
+
+- name: Create Webhook container
+  community.docker.docker_container:
+    name: "{{ webhook['container_name'] }}"
+    image: "{{ webhook_image.image.Id }}"
+    hostname: "{{ webhook['container_hostname'] }}"
+    state: started
+    restart_policy: unless-stopped
+    volumes:
+      - "{{ webhook_hook_file }}:/etc/webhook/hooks.yml"
+      - "{{ webhook['host_named_pipe'] }}:{{ webhook['output_pipe'] }}"
+    networks: "{{ webhook['networks'] }}"

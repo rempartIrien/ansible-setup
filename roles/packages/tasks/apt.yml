@@ -20,3 +20,4 @@
       - file # File type identification
       - git # Version control system
       - vim # Text editor
+      - cron # Crontab

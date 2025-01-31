@@ -21,7 +21,7 @@
 - name: Create Caddyfile
   ansible.builtin.template:
     src: "{{ caddy['caddy_file_path'] }}"
-    dest: "{{ caddy_path }}/Caddyfile.j2"
+    dest: "{{ caddy_path }}/Caddyfile"
     mode: "0644"
 
 - name: Create Caddy data volume
@@ -43,7 +43,7 @@
       - "443:443" # HTTPS
       - "443:443/udp" # HTTP/3
     volumes:
-      - "{{ caddy_path }}/Caddyfile.j2:/etc/caddy/Caddyfile"
+      - "{{ caddy_path }}/Caddyfile:/etc/caddy/Caddyfile"
       - "{{ caddy['data_volume'] }}:/data"
       - "{{ caddy['config_volume'] }}:/config"
     networks: "{{ caddy['networks'] }}"

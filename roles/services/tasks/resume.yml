@@ -1,0 +1,38 @@
+---
+- name: Set variable for resume container
+  ansible.builtin.set_fact:
+    resume: "{{ applications | selectattr('container_name', 'equalto', 'resume') | first }}"
+    resume_hook: "{{ webhook_hooks | selectattr('id', 'equalto', 'resume') | first }}"
+
+- name: Create resume data volume
+  community.docker.docker_volume:
+    name: "{{ resume['data_volume'] }}"
+
+- name: Get Docker volume information
+  community.docker.docker_volume_info:
+    name: "{{ resume['data_volume'] }}"
+  register: volume_info
+
+- name: Change permissions on the volume mount point
+  ansible.builtin.file:
+    path: "{{ volume_info.volume.Mountpoint }}"
+    owner: "{{ username }}"
+    group: "docker"
+    mode: "0755"
+    recurse: true
+  when: volume_info.exists
+  become: true
+
+- name: State that resume container does not exist
+  ansible.builtin.command: docker ps -a --filter "name={{ resume['container_name'] }}" --format "{{ '{{.Names}}' }}"
+  register: resume_docker_container_check
+  changed_when: false
+
+- name: Set fact that resume container does not exist
+  ansible.builtin.set_fact:
+    resume_container_exists: "{{ resume['container_name'] in resume_docker_container_check.stdout }}"
+
+- name: Create resume container
+  ansible.builtin.command: "{{ redeploy_script }} {{ resume_hook['command_params'] }}"
+  when: not resume_container_exists
+  changed_when: true
