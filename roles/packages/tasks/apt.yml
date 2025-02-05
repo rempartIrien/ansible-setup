@@ -21,3 +21,4 @@
       - git # Version control system
       - vim # Text editor
       - cron # Crontab
+      - htop # htop
