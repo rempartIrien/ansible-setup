@@ -9,6 +9,11 @@
         name: security
         tasks_from: apt.yml
       become: true
+    - name: Plan package updates
+      ansible.builtin.import_role:
+        name: security
+        tasks_from: updates.yml
+      become: true
     - name: Init system
       ansible.builtin.import_role:
         name: security

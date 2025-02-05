@@ -1,4 +1,7 @@
 ---
+security_updater_file: "/usr/local/bin/install_updates.sh"
+security_updater_file_path: "{{ playbook_dir }}/roles/security/files/install_updates.sh"
+
 docker_networks:
   - name: caddy_net
     driver: bridge

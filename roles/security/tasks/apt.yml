@@ -21,3 +21,4 @@
       - gnupg # GnuPG
       - fail2ban # Intrusion prevention software
       - ufw # Uncomplicated Firewall
+      - cron # Crontab

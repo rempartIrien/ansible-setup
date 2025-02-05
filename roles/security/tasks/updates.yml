@@ -1,0 +1,19 @@
+---
+- name: Ensure Cron is installed
+  ansible.builtin.apt:
+    name: cron
+    state: present
+
+- name: Copy update script
+  ansible.builtin.copy:
+    src: "{{ security_updater_file_path }}"
+    dest: "{{ security_updater_file }}"
+    mode: "0755"
+
+- name: Create a cron job to run the update script daily
+  ansible.builtin.cron:
+    name: "Run security updates"
+    minute: "0"
+    hour: "3"
+    job: "{{ security_updater_file }}"
+    state: present
