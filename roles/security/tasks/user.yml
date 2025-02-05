@@ -22,12 +22,6 @@
     state: present
     key: "{{ lookup('file', ssh_public_key_path) }}"
 
-- name: Generate an OpenSSH keypair with the default values (4096 bits, rsa)
-  community.crypto.openssh_keypair:
-    path: "/home/{{ username }}/.ssh/id_rsa"
-    owner: "{{ username }}"
-    group: "{{ username }}"
-
 - name: Update Ansible to use new user
   ansible.builtin.set_fact:
     ansible_user: "{{ username }}"

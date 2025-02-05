@@ -66,6 +66,7 @@ applications:
     networks:
       - name: caddy_net
     domain: "{{ resume_domain }}"
+    repo_name: "{{ resume_repo_name }}"
   # # Easy Gundam Container Configuration
   # - container_name: easy-gundam
   #   container_hostname: easy-gundam

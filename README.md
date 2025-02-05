@@ -4,8 +4,8 @@ See https://github.com/madalinpopa/ubuntu-server-automation
 
 ## What to do before
 
-- Create Deploy Key on Github https://gist.github.com/zhujunsan/a0becf82ade50ed06115
 - Configure A and AAAA records in DNS provider control panel
+- Create an access token in GitHub and put it in secrets files to create deploy keys
 
 ## References
 
