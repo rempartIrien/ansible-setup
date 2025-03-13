@@ -31,6 +31,10 @@
       ansible.builtin.import_role:
         name: services
         tasks_from: webhook.yml
+    - name: Allow cloning from GitHub
+      ansible.builtin.import_role:
+        name: services
+        tasks_from: github.yml
     - name: Install resume
       ansible.builtin.import_role:
         name: services

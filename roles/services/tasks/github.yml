@@ -1,0 +1,25 @@
+---
+- name: Set facts
+  ansible.builtin.set_fact:
+    known_host_path: "/home/{{ username }}/.ssh/known_hosts"
+
+- name: Create known_hosts file
+  ansible.builtin.file:
+    path: "{{ known_host_path }}"
+    mode: "0644"
+    state: touch
+
+- name: Get GitHub metadata
+  ansible.builtin.uri:
+    url: https://api.github.com/meta
+    method: GET
+    return_content: true
+  register: github_meta
+
+- name: Add GitHub SSH keys to known_hosts
+  ansible.builtin.lineinfile:
+    path: "{{ known_host_path }}"
+    line: "github.com {{ item }}"
+    state: present
+  loop: "{{ github_meta.json.ssh_keys }}"
+  when: github_meta.json.ssh_keys is defined

@@ -67,6 +67,7 @@
     msg: "Rebooting after adding cron job"
     pre_reboot_delay: 0
     post_reboot_delay: 30
+  become: true
 
 - name: Create redeploy script
   ansible.builtin.copy:

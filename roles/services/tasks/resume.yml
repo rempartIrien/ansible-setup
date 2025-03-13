@@ -6,7 +6,7 @@
 
 - name: Generate an OpenSSH keypair with the default values (4096 bits, rsa)
   community.crypto.openssh_keypair:
-    path: "/home/{{ username }}/.ssh/id_rsa_{{ resume['container_name'] }}"
+    path: "{{ resume['container_name'] | ssh_key_path(username) }}"
     owner: "{{ username }}"
     group: "{{ username }}"
   register: ssh_key
@@ -23,6 +23,7 @@
       key: "{{ ssh_key.public_key }}"
       read_only: true
     body_format: json
+    status_code: [200, 201]
 
 - name: Create resume data volume
   community.docker.docker_volume:

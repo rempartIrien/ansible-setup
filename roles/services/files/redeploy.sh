@@ -17,6 +17,8 @@ if [ -z "$SCRIPT_DIR" ]; then
 fi
 
 REPO_DIR="$SCRIPT_DIR/$(basename "$REPO_URL" .git)"
+SSH_KEY_PATH="~/.ssh/id_rsa_$IMAGE_NAME"
+export GIT_SSH_COMMAND="ssh -i $SSH_KEY_PATH"
 CURRENT_CONTAINER_IMAGE_NAME=$(docker ps -a --format "{{.Names}}" | grep "^$IMAGE_NAME")
 TIMESTAMP=$(date +%Y%m%d%H%M%S)
 NEW_CONTAINER_NAME="${IMAGE_NAME}_container_${TIMESTAMP}"
