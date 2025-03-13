@@ -43,6 +43,12 @@
     path: "{{ webhook['host_named_pipe'] }}"
     mode: "0644"
 
+- name: Create projects home folder
+  ansible.builtin.file:
+    path: "{{ projects_home }}"
+    state: directory
+    mode: "0755"
+
 - name: Create redeploy cron script
   ansible.builtin.template:
     src: "{{ webhook['redeploy_cron_script_path'] }}"
@@ -61,12 +67,6 @@
     msg: "Rebooting after adding cron job"
     pre_reboot_delay: 0
     post_reboot_delay: 30
-
-- name: Create projects home folder
-  ansible.builtin.file:
-    path: "{{ projects_home }}"
-    state: directory
-    mode: "0755"
 
 - name: Create redeploy script
   ansible.builtin.copy:
