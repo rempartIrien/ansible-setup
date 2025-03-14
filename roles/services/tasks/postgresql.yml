@@ -16,13 +16,13 @@
     image_name_mismatch: recreate
     recreate: true
     env:
-      POSTGRES_USER: "{{ postgres_db_user }}"
-      POSTGRES_PASSWORD: "{{ postgres_db_pass }}"
+      POSTGRES_USER: "{{ easy_gundam_api_db_user }}"
+      POSTGRES_PASSWORD: "{{ easy_gundam_api_db_pass }}"
     networks: "{{ postgres['networks'] }}"
     volumes:
       - "{{ postgres['data_volume'] }}:/var/lib/postgresql/data"
     healthcheck:
-      test: ["CMD", "pg_isready", "-U", "{{ postgres_db_user }}"]
+      test: ["CMD", "pg_isready", "-U", "{{ easy_gundam_api_db_pass }}"]
       interval: 1m30s
       timeout: 10s
       retries: 3
@@ -31,7 +31,7 @@
 - name: Wait for PostgreSQL to become available
   community.docker.docker_container_exec:
     container: "{{ postgres['container_name'] }}"
-    command: bash -c "until pg_isready -U {{ postgres_db_user }}; do sleep 1; done"
+    command: bash -c "until pg_isready -U {{ easy_gundam_api_db_pass }}; do sleep 1; done"
   register: result
   until: result is succeeded
   retries: 30
