@@ -29,3 +29,7 @@ Thumbs.db
 vars.yml
 inventory.yml
 ansible_secrets_pass.txt
+
+# Easy Gundam
+roles/services/files/easy_gundam_db.sql
+roles/services/files/easy_gundam_api_uploads

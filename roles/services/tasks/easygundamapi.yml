@@ -1,0 +1,85 @@
+---
+- name: Set variable for Easy Gundam API container
+  ansible.builtin.set_fact:
+    easy_gundam_api: "{{ applications | selectattr('container_name', 'equalto', 'easy-gundam-api') | first }}"
+    easy_gundam_db: "{{ applications | selectattr('container_name', 'equalto', 'easy-gundam-api-db') | first }}"
+
+- name: Create Easy Gundam API volume
+  community.docker.docker_volume:
+    name: "{{ easy_gundam_api['data_volume'] }}"
+
+- name: Get Docker volume information
+  community.docker.docker_volume_info:
+    name: "{{ easy_gundam_api['data_volume'] }}"
+  register: volume_info
+
+- name: Change permissions on the volume mount point
+  ansible.builtin.file:
+    path: "{{ volume_info.volume.Mountpoint }}"
+    owner: "{{ username }}"
+    group: "docker"
+    mode: "0755"
+    recurse: true
+  when: volume_info.exists
+  become: true
+
+- name: Set variable for Easy Gundam API container
+  ansible.builtin.set_fact:
+    easy_gundam_api_upload_folder: "{{ volume_info.volume.Mountpoint }}/uploads"
+
+- name: Check if folder exists
+  ansible.builtin.stat:
+    path: "{{ easy_gundam_api['upload_folder'] }}"
+  delegate_to: localhost
+  register: folder_stat
+
+- name: Create uploads folder
+  ansible.builtin.file:
+    path: "{{ easy_gundam_api_upload_folder }}"
+    state: directory
+    owner: "{{ username }}"
+    group: "docker"
+    mode: "0755"
+    recurse: true
+  become: true
+  when: folder_stat.stat.exists
+
+- name: Copy folder to Docker volume
+  ansible.builtin.copy:
+    src: "{{ easy_gundam_api['upload_folder'] }}/" # Add trailing / to copy folder content
+    dest: "{{ easy_gundam_api_upload_folder }}/"
+    mode: "0755"
+  become: true
+  when: folder_stat.stat.exists
+- name: Change file permissions to be read by Easy Gundam API user
+  ansible.builtin.file:
+    path: "{{ easy_gundam_api_upload_folder }}/"
+    mode: "0755"
+    owner: 1000
+    group: 1000
+    recurse: true
+  become: true
+  when: folder_stat.stat.exists
+- name: Create Easy Gundam API container
+  community.docker.docker_container:
+    name: "{{ easy_gundam_api['container_name'] }}"
+    image: "{{ easy_gundam_api['container_image'] }}"
+    hostname: "{{ easy_gundam_api['container_hostname'] }}"
+    restart_policy: unless-stopped
+    recreate: true
+    networks: "{{ easy_gundam_api['networks'] }}"
+    volumes:
+      - "{{ easy_gundam_api_upload_folder }}:/directus/uploads"
+    env:
+      ADMIN_EMAIL: "{{ easy_gundam_api_admin_email }}"
+      ADMIN_PASSWORD: "{{ easy_gundam_api_admin_password }}"
+      KEY: "{{ easy_gundam_api_key }}"
+      SECRET: "{{ easy_gundam_api_secret }}"
+      PUBLIC_URL: "https://{{ easy_gundam_api['domain'] }}"
+      DB_CLIENT: "postgres"
+      DB_HOST: "{{ easy_gundam_db['container_hostname'] }}"
+      DB_PORT: "{{ easy_gundam_db['container_port'] }}"
+      DB_USER: "{{ easy_gundam_api_db_user }}"
+      DB_PASSWORD: "{{ easy_gundam_api_db_pass }}"
+      DB_DATABASE: "{{ easy_gundam_api_db_name }}"
+      HOST: "0.0.0.0"

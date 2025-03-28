@@ -49,6 +49,14 @@
     state: directory
     mode: "0755"
 
+- name: Create secrets folder
+  ansible.builtin.file:
+    path: "{{ secrets_home }}"
+    state: directory
+    owner: "{{ username }}"
+    group: docker
+    mode: "0744"
+
 - name: Create redeploy cron script
   ansible.builtin.template:
     src: "{{ webhook['redeploy_cron_script_path'] }}"

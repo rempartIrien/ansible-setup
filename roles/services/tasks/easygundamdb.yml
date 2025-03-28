@@ -1,0 +1,78 @@
+---
+- name: Set variable for Easy Gundam DB container
+  ansible.builtin.set_fact:
+    easy_gundam_db: "{{ applications | selectattr('container_name', 'equalto', 'easy-gundam-api-db') | first }}"
+    easy_gundam_dump_path: /tmp/dumpfile.sql
+
+- name: Create postgres volume
+  community.docker.docker_volume:
+    name: "{{ easy_gundam_db['data_volume'] }}"
+
+- name: Create easy-gundam-api-db container
+  community.docker.docker_container:
+    name: "{{ easy_gundam_db['container_name'] }}"
+    image: "{{ easy_gundam_db['container_image'] }}"
+    hostname: "{{ easy_gundam_db['container_hostname'] }}"
+    restart_policy: unless-stopped
+    image_name_mismatch: recreate
+    recreate: true
+    env:
+      POSTGRES_USER: "{{ easy_gundam_api_db_user }}"
+      POSTGRES_PASSWORD: "{{ easy_gundam_api_db_pass }}"
+    networks: "{{ easy_gundam_db['networks'] }}"
+    volumes:
+      - "{{ easy_gundam_db['data_volume'] }}:/var/lib/postgresql/data"
+    healthcheck:
+      test: ["CMD", "pg_isready", "-U", "{{ easy_gundam_api_db_user }}"]
+      interval: 1m30s
+      timeout: 10s
+      retries: 3
+      start_period: 30s
+
+- name: Wait for PostgreSQL to become available
+  community.docker.docker_container_exec:
+    container: "{{ easy_gundam_db['container_name'] }}"
+    command: bash -c "until pg_isready -U {{ easy_gundam_api_db_user }}; do sleep 1; done"
+  register: result
+  until: result is succeeded
+  retries: 30
+  delay: 1
+
+- name: Check if dump file exists
+  ansible.builtin.stat:
+    path: "{{ easy_gundam_db['dump_file_path'] }}"
+  delegate_to: localhost
+  register: dump_file_stat
+
+- name: Copy dump file
+  ansible.builtin.copy:
+    src: "{{ easy_gundam_db['dump_file_path'] }}"
+    dest: "{{ easy_gundam_dump_path }}"
+    mode: "0755"
+  when: dump_file_stat.stat.exists
+
+- name: Copy dump file to Docker container
+  community.docker.docker_container_copy_into:
+    path: "{{ easy_gundam_dump_path }}"
+    container_path: "{{ easy_gundam_dump_path }}"
+    container: "{{ easy_gundam_db['container_name'] }}"
+  when: dump_file_stat.stat.exists
+
+- name: Delete dumb file
+  ansible.builtin.file:
+    path: "{{ easy_gundam_dump_path }}"
+    state: absent
+
+- name: Create database if it does not exist
+  community.docker.docker_container_exec:
+    container: "{{ easy_gundam_db['container_name'] }}"
+    command: "psql -U {{ easy_gundam_api_db_user }} -c 'CREATE DATABASE {{ easy_gundam_api_db_name }};'"
+  register: create_db_result
+  ignore_errors: true # Ignore errors if the database already exists
+  when: dump_file_stat.stat.exists
+
+- name: Restore database from dump
+  community.docker.docker_container_exec:
+    container: "{{ easy_gundam_db['container_name'] }}"
+    command: "psql -U {{ easy_gundam_api_db_user }} -d {{ easy_gundam_api_db_name }} -f {{ easy_gundam_dump_path }}"
+  when: dump_file_stat.stat.exists

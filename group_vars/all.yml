@@ -19,6 +19,7 @@ caddy:
     - name: caddy_net
 
 projects_home: "/home/{{ username }}/projects"
+secrets_home: "{{ projects_home }}/secrets"
 redeploy_script: "{{ projects_home }}/redeploy.sh"
 redeploy_script_path: "{{ playbook_dir }}/roles/services/files/redeploy.sh"
 redeploy_cron_script: "{{ projects_home }}/webhook_cron.sh"
@@ -57,6 +58,7 @@ applications:
     data_volume: pgadmin_data
     networks:
       - name: caddy_net
+      - name: private_easy_gundam
     domain: "{{ pgadmin_domain }}"
   # Resume Container Configuration
   - container_name: resume
@@ -67,24 +69,26 @@ applications:
       - name: caddy_net
     domain: "{{ resume_domain }}"
     repo_name: "{{ resume_repo_name }}"
-  # # Easy Gundam Container Configuration
-  # - container_name: easy-gundam
-  #   container_hostname: easy-gundam
-  #   container_port: 8080
-  #   data_volume: easy-gundam_data
-  #   networks:
-  #     - name: caddy_net
-  #   domain: "{{ easy_gundam_domain }}"
-  # # Easy Gundam API Container Configuration
-  # - container_name: easy-gundam-api
-  #   container_hostname: easy-gundam-api
-  #   container_image: directus/directus:latest
-  #   container_port: 8055
-  #   data_volume: easy-gundam-api_data
-  #   networks:
-  #     - name: caddy_net
-  #     - name: private_easy_gundam
-  #   domain: "{{ easy_gundam_api_domain }}"
+  # Easy Gundam Container Configuration
+  - container_name: easy-gundam
+    container_hostname: easy-gundam
+    container_port: 3000
+    data_volume: easy-gundam_data
+    networks:
+      - name: caddy_net
+    domain: "{{ easy_gundam_domain }}"
+    repo_name: "{{ easy_gundam_repo_name }}"
+  # Easy Gundam API Container Configuration
+  - container_name: easy-gundam-api
+    container_hostname: easy-gundam-api
+    container_image: directus/directus:latest
+    container_port: 8055
+    data_volume: easy-gundam-api_data
+    networks:
+      - name: caddy_net
+      - name: private_easy_gundam
+    domain: "{{ easy_gundam_api_domain }}"
+    upload_folder: "{{ playbook_dir }}/roles/services/files/easy_gundam_api_uploads"
   # Easy Gundam DB Container Configuration
   - container_name: easy-gundam-api-db
     container_hostname: easy-gundam-api-db
@@ -93,3 +97,4 @@ applications:
     data_volume: easy-gundam-api-db_data
     networks:
       - name: private_easy_gundam
+    dump_file_path: "{{ playbook_dir }}/roles/services/files/easy_gundam_db.sql"

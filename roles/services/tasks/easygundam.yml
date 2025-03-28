@@ -1,0 +1,90 @@
+---
+- name: Set variable for Easy Gundam container
+  ansible.builtin.set_fact:
+    easy_gundam: "{{ applications | selectattr('container_name', 'equalto', 'easy-gundam') | first }}"
+    easy_gundam_hook: "{{ webhook_hooks | selectattr('id', 'equalto', 'easy-gundam') | first }}"
+    easy_gundam_secret_folder: "{{ secrets_home }}/easy-gundam"
+
+- name: Create easy-gundam secrets folder
+  ansible.builtin.file:
+    path: "{{ easy_gundam_secret_folder }}"
+    state: directory
+    mode: "0744"
+    owner: "{{ username }}"
+    group: "docker"
+  become: true
+
+- name: Create VITE_API secret file
+  ansible.builtin.copy:
+    content: "{{ easy_gundam_secret_api }}"
+    dest: "{{ easy_gundam_secret_folder }}/VITE_API"
+    mode: "0640"
+    owner: "{{ username }}"
+    group: "docker"
+  become: true
+
+- name: Create VITE_SECRETS secret file
+  ansible.builtin.copy:
+    content: "{{ easy_gundam_secret_secret }}"
+    dest: "{{ easy_gundam_secret_folder }}/VITE_SECRETS"
+    mode: "0640"
+    owner: "{{ username }}"
+    group: "docker"
+  become: true
+
+- name: Generate an OpenSSH keypair with the default values (4096 bits, rsa)
+  community.crypto.openssh_keypair:
+    path: "{{ easy_gundam['container_name'] | ssh_key_path(username) }}"
+    owner: "{{ username }}"
+    group: "{{ username }}"
+  register: ssh_key
+
+- name: Add public key to GitHub
+  ansible.builtin.uri:
+    url: "https://api.github.com/repos/{{ easy_gundam['repo_name'] }}/keys"
+    method: POST
+    headers:
+      Authorization: "token {{ github_token }}"
+      Accept: "application/vnd.github.v3+json"
+    body:
+      title: "VPS deploy key"
+      key: "{{ ssh_key.public_key }}"
+      read_only: true
+    body_format: json
+    status_code: [200, 201]
+
+- name: Create Easy Gundam data volume
+  community.docker.docker_volume:
+    name: "{{ easy_gundam['data_volume'] }}"
+
+- name: Get Docker volume information
+  community.docker.docker_volume_info:
+    name: "{{ easy_gundam['data_volume'] }}"
+  register: volume_info
+
+- name: Change permissions on the volume mount point
+  ansible.builtin.file:
+    path: "{{ volume_info.volume.Mountpoint }}"
+    owner: "{{ username }}"
+    group: "docker"
+    mode: "0755"
+    recurse: true
+  when: volume_info.exists
+  become: true
+
+- name: State that Easy Gundam container does not exist
+  ansible.builtin.command: docker ps -a --filter "name={{ easy_gundam['container_name'] }}" --format "{{ '{{.Names}}' }}"
+  register: easy_gundam_docker_container_check
+  changed_when: false
+
+- name: Set fact that Easy Gundam container does not exist
+  ansible.builtin.set_fact:
+    easy_gundam_container_exists: "{{
+      (easy_gundam_docker_container_check.stdout_lines
+      | select('match', '^' + easy_gundam['container_name'] + '$')
+      | list | length) > 0 }}"
+
+- name: Create Easy Gundam container
+  ansible.builtin.command: "{{ redeploy_script }} {{ easy_gundam_hook['command_params'] }}"
+  when: not easy_gundam_container_exists
+  changed_when: true

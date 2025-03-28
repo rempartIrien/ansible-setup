@@ -19,25 +19,29 @@ fi
 REPO_DIR="$SCRIPT_DIR/$(basename "$REPO_URL" .git)"
 SSH_KEY_PATH="~/.ssh/id_rsa_$IMAGE_NAME"
 export GIT_SSH_COMMAND="ssh -i $SSH_KEY_PATH"
-CURRENT_CONTAINER_IMAGE_NAME=$(docker ps -a --format "{{.Names}}" | grep "^$IMAGE_NAME")
+CURRENT_CONTAINER_IMAGE_NAME=$(docker ps -a --format "{{.Names}}" | grep "^$IMAGE_NAME$")
 TIMESTAMP=$(date +%Y%m%d%H%M%S)
 NEW_CONTAINER_NAME="${IMAGE_NAME}_container_${TIMESTAMP}"
 
 # Browse all parameters and group them by type.
 BUILD_ARGS=()
+SECRETS=()
 ENV_VARS=()
 VOLUMES=()
 INPUT="$@"
 while [[ "$INPUT" ]]; do
-    if [[ "$INPUT" =~ ^(.*?)(--env| -e)(.*) ]]; then
-        ENV_VARS+=("${BASH_REMATCH[2]} ${BASH_REMATCH[3]}")
-        INPUT="${BASH_REMATCH[1]}${BASH_REMATCH[4]}"
-    elif [[ "$INPUT" =~ ^(.*?)(--build-arg)(.*) ]]; then
-        BUILD_ARGS+=("${BASH_REMATCH[2]} ${BASH_REMATCH[3]}")
-        INPUT="${BASH_REMATCH[1]}${BASH_REMATCH[4]}"
-    elif [[ "$INPUT" =~ ^(.*?)(--volume| -v)(.*) ]]; then
-        VOLUMES+=("${BASH_REMATCH[2]} ${BASH_REMATCH[3]}")
-        INPUT="${BASH_REMATCH[1]}${BASH_REMATCH[4]}"
+    if [[ "$INPUT" =~ ^(.*?)(--env| -e)[[:space:]]+([^ ]+) ]]; then
+        ENV_VARS+=(--env "${BASH_REMATCH[3]}")
+        INPUT="${BASH_REMATCH[1]}${INPUT:${#BASH_REMATCH[0]}}"
+    elif [[ "$INPUT" =~ ^(.*?)(--build-arg)[[:space:]]+([^ ]+) ]]; then
+        BUILD_ARGS+=(--build-arg "${BASH_REMATCH[3]}")
+        INPUT="${BASH_REMATCH[1]}${INPUT:${#BASH_REMATCH[0]}}"
+    elif [[ "$INPUT" =~ ^(.*?)(--secret)[[:space:]]+([^ ]+) ]]; then
+        SECRETS+=(--secret "${BASH_REMATCH[3]}")
+        INPUT="${BASH_REMATCH[1]}${INPUT:${#BASH_REMATCH[0]}}"
+    elif [[ "$INPUT" =~ ^(.*?)(--volume| -v)[[:space:]]+([^ ]+) ]]; then
+        VOLUMES+=(--volume "${BASH_REMATCH[3]}")
+        INPUT="${BASH_REMATCH[1]}${INPUT:${#BASH_REMATCH[0]}}"
     else
         break
     fi
@@ -59,7 +63,10 @@ fi
 COMMIT_ID=$(git rev-parse HEAD)
 
 # Build new Docker image from sources
-docker build "${BUILD_ARGS[@]}" -t "$IMAGE_NAME:$COMMIT_ID" .
+DOCKER_BUILDKIT=1 docker buildx build \
+  "${BUILD_ARGS[@]}" \
+	"${SECRETS[@]}" \
+	-t "$IMAGE_NAME:$COMMIT_ID" .
 
 # Stop current container if any
 if [ -n "$CURRENT_CONTAINER_IMAGE_NAME" ]; then

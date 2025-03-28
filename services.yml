@@ -15,11 +15,11 @@
       ansible.builtin.import_role:
         name: services
         tasks_from: caddy.yml
-    - name: Instal PostgreSQL
+    - name: Install webhook
       ansible.builtin.import_role:
         name: services
-        tasks_from: postgresql.yml
-    - name: Instal pgAdmin
+        tasks_from: webhook.yml
+    - name: Install pgAdmin
       ansible.builtin.import_role:
         name: services
         tasks_from: pgadmin.yml
@@ -27,10 +27,6 @@
       ansible.builtin.import_role:
         name: services
         tasks_from: yacht.yml
-    - name: Install webhook
-      ansible.builtin.import_role:
-        name: services
-        tasks_from: webhook.yml
     - name: Allow cloning from GitHub
       ansible.builtin.import_role:
         name: services
@@ -39,3 +35,15 @@
       ansible.builtin.import_role:
         name: services
         tasks_from: resume.yml
+    - name: Install Easy Gundam DB
+      ansible.builtin.import_role:
+        name: services
+        tasks_from: easygundamdb.yml
+    - name: Install Easy Gundam API
+      ansible.builtin.import_role:
+        name: services
+        tasks_from: easygundamapi.yml
+    - name: Install Easy Gundam
+      ansible.builtin.import_role:
+        name: services
+        tasks_from: easygundam.yml
