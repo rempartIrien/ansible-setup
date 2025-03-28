@@ -1,7 +1,3 @@
-http {
-  redir https://{host}{uri} 301
-}
-
 {% for application in applications %}
   {% for network in application.networks %}
     {% if network.name == 'caddy_net' %}
