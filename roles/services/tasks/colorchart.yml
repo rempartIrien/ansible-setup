@@ -1,0 +1,43 @@
+---
+- name: Set variable for color-chart container
+  ansible.builtin.set_fact:
+    color_chart: "{{ applications | selectattr('container_name', 'equalto', 'color-chart') | first }}"
+    color_chart_hook: "{{ webhook_hooks | selectattr('id', 'equalto', 'color-chart') | first }}"
+
+- name: Generate an OpenSSH keypair with the default values (4096 bits, rsa)
+  community.crypto.openssh_keypair:
+    path: "{{ color_chart['container_name'] | ssh_key_path(username) }}"
+    owner: "{{ username }}"
+    group: "{{ username }}"
+  register: ssh_key
+
+- name: Add public key to GitHub
+  ansible.builtin.uri:
+    url: "https://api.github.com/repos/{{ color_chart['repo_name'] }}/keys"
+    method: POST
+    headers:
+      Authorization: "token {{ github_token }}"
+      Accept: "application/vnd.github.v3+json"
+    body:
+      title: "VPS deploy key"
+      key: "{{ ssh_key.public_key }}"
+      read_only: true
+    body_format: json
+    status_code: [200, 201]
+
+- name: State that color-chart container does not exist
+  ansible.builtin.command: docker ps -a --filter "name={{ color_chart['container_name'] }}" --format "{{ '{{.Names}}' }}"
+  register: color_chart_docker_container_check
+  changed_when: false
+
+- name: Set fact that color-chart container does not exist
+  ansible.builtin.set_fact:
+    color_chart_container_exists: "{{
+      (color_chart_docker_container_check.stdout_lines
+      | select('match', '^' + color_chart['container_name'] + '$')
+      | list | length) > 0 }}"
+
+- name: Create color-chart container
+  ansible.builtin.command: "{{ redeploy_script }} {{ color_chart_hook['command_params'] }}"
+  when: not color_chart_container_exists
+  changed_when: true

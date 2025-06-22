@@ -51,7 +51,7 @@
 
 - name: Set fact that resume container does not exist
   ansible.builtin.set_fact:
-    easy_gundam_container_exists: "{{
+    resume_container_exists: "{{
       (resume_docker_container_check.stdout_lines
       | select('match', '^' + resume['container_name'] + '$')
       | list | length) > 0 }}"

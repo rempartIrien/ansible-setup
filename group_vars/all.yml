@@ -69,6 +69,14 @@ applications:
       - name: caddy_net
     domain: "{{ resume_domain }}"
     repo_name: "{{ resume_repo_name }}"
+  # Color Chart Container Configuration
+  - container_name: color-chart
+    container_hostname: color-chart
+    container_port: 8080
+    networks:
+      - name: caddy_net
+    domain: "{{ color_chart_domain }}"
+    repo_name: "{{ color_chart_repo_name }}"
   # Easy Gundam Container Configuration
   - container_name: easy-gundam
     container_hostname: easy-gundam

@@ -35,6 +35,10 @@
       ansible.builtin.import_role:
         name: services
         tasks_from: resume.yml
+    - name: Install Color Chart
+      ansible.builtin.import_role:
+        name: services
+        tasks_from: colorchart.yml
     - name: Install Easy Gundam DB
       ansible.builtin.import_role:
         name: services
