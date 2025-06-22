@@ -84,6 +84,13 @@
     group: docker
     mode: "0755"
 
+- name: Create logs directory
+  ansible.builtin.file:
+    path: "{{ log_file_directory }}"
+    state: directory
+    group: docker
+    mode: "0755"
+
 - name: Copy script to send to pipe for Dockerfile
   ansible.builtin.template:
     src: "{{ webhook['send_to_pipe_path'] }}"
@@ -110,7 +117,7 @@
 - name: Create Webhook container
   community.docker.docker_container:
     name: "{{ webhook['container_name'] }}"
-    image: "{{ webhook_image.image.Id }}"
+    image: "{{ webhook_image.image.RepoTags | first }}"
     hostname: "{{ webhook['container_hostname'] }}"
     state: started
     restart_policy: unless-stopped

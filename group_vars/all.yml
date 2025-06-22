@@ -23,6 +23,8 @@ secrets_home: "{{ projects_home }}/secrets"
 redeploy_script: "{{ projects_home }}/redeploy.sh"
 redeploy_script_path: "{{ playbook_dir }}/roles/services/files/redeploy.sh"
 redeploy_cron_script: "{{ projects_home }}/webhook_cron.sh"
+log_file_directory: "/home/{{ username }}/logs"
+log_file_pattern: "{{ log_file_directory }}/log-DATE.txt"
 
 applications:
   # Webhook Container Configuration

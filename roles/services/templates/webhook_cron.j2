@@ -6,8 +6,11 @@ while true; do
 
     # Check if some params have been read
     if [ -n "$params" ]; then
+		    # Build log file name
+        date=$(date +"%Y-%m-%d")
+        log_file=$(echo "{{ log_file_pattern }}" | sed "s/DATE/$date/")
         # Run script with given params
-        {{ redeploy_script }} $params
+        {{ redeploy_script }} $params  >> $log_file 2>&1
     fi
 
 done

@@ -21,6 +21,12 @@ SSH_KEY_PATH="~/.ssh/id_rsa_$IMAGE_NAME"
 export GIT_SSH_COMMAND="ssh -i $SSH_KEY_PATH"
 CURRENT_CONTAINER_ID=$(docker ps -a --format "{{.ID}} {{.Names}}" | grep " $IMAGE_NAME$" | awk '{print $1}')
 NEW_CONTAINER_NAME="$IMAGE_NAME"
+OLD_CONTAINER_NEW_NAME="OLD-$IMAGE_NAME"
+
+log_message() {
+    local timestamp=$(date "+%Y-%m-%d %H:%M:%S")
+    echo "$timestamp - $1"
+}
 
 # Browse all parameters and group them by type.
 BUILD_ARGS=()
@@ -48,13 +54,13 @@ done
 
 # Check if the repo has already been cloned
 if [ -d "$REPO_DIR" ]; then
-    echo "$REPO_DIR has already been cloned. Updating main branch..."
+    log_message "$REPO_DIR has already been cloned. Updating main branch..."
     cd "$REPO_DIR" || exit 1
     git checkout main --force
 		git fetch -p
 		git reset --hard origin/main
 else
-    echo "Cloning $REPO_URL into $REPO_DIR..."
+    log_message "Cloning $REPO_URL into $REPO_DIR..."
     git clone "$REPO_URL" "$REPO_DIR"
     cd "$REPO_DIR" || exit 1
 fi
@@ -70,7 +76,8 @@ DOCKER_BUILDKIT=1 docker buildx build \
 
 # Stop current container if any
 if [ -n "$CURRENT_CONTAINER_ID" ]; then
-    echo "Stopping $CURRENT_CONTAINER_ID..."
+		docker rename "$IMAGE_NAME" "$OLD_CONTAINER_NEW_NAME"
+    log_message "Stopping $OLD_CONTAINER_NEW_NAME ($CURRENT_CONTAINER_ID)..."
     docker stop "$CURRENT_CONTAINER_ID"
 fi
 
@@ -86,21 +93,22 @@ docker run -d \
 
 # Check that new container is running
 if [ "$(docker ps -q -f name=$NEW_CONTAINER_NAME)" ]; then
-    echo "$NEW_CONTAINER_NAME has successfully started."
+    log_message "$NEW_CONTAINER_NAME has successfully started."
 		if [ -n "$CURRENT_CONTAINER_ID" ]; then
-		  echo "Deleting $CURRENT_CONTAINER_ID..."
+		  log_message "Deleting $OLD_CONTAINER_NEW_NAME ($CURRENT_CONTAINER_ID)..."
 		  docker rm "$CURRENT_CONTAINER_ID"
 		fi
 else
-    echo "$NEW_CONTAINER_NAME has NOT successfully started."
+    log_message "$NEW_CONTAINER_NAME has NOT successfully started."
+		log_message "Deleting $NEW_CONTAINER_NAME..."
+    docker rm -f "$NEW_CONTAINER_NAME"
 
     if [ -n "$CURRENT_CONTAINER_ID" ]; then
-		    echo "Trying to restore $CURRENT_CONTAINER_ID..."
+		    log_message "Trying to restore $CURRENT_CONTAINER_ID..."
         docker start "$CURRENT_CONTAINER_ID"
-        echo "$CURRENT_CONTAINER_ID has started"
+		    docker rename "$OLD_CONTAINER_NEW_NAME" "$IMAGE_NAME"
+        log_message "$IMAGE_NAME ($CURRENT_CONTAINER_ID) has started"
     else
-        echo "No previous container to start."
+        log_message "No previous container to start."
     fi
-		echo "Deleting $NEW_CONTAINER_NAME..."
-    docker rm -f "$NEW_CONTAINER_NAME"
 fi
